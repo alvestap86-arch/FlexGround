@@ -654,7 +654,10 @@ pre{
   background:var(--code-bg);color:var(--code-color);
   font:.86rem/1.65 var(--mono);box-shadow:var(--code-shadow)
 }
-.status{padding:12px 16px;font-size:.8rem;color:var(--ink-soft);font-weight:600}
+.code-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px}
+.status{font-size:.8rem;color:var(--ink-soft);font-weight:600}
+.dl{display:flex;gap:8px;flex:0 0 auto}
+.dl button{padding:7px 13px;font-size:.8rem}
 footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
 
 /* ---------- barra superior: temas + música ---------- */
@@ -1075,7 +1078,13 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
         <button class="blue" id="copy">Copiar</button>
       </div>
       <pre><code id="codeOut"></code></pre>
-      <div class="status" id="status" aria-live="polite">El código se actualiza solo al cambiar cualquier control.</div>
+      <div class="code-foot">
+        <div class="status" id="status" aria-live="polite">El código se actualiza solo al cambiar cualquier control.</div>
+        <div class="dl">
+          <button id="dlCss" title="Descargar maqueta.css con la hoja de estilos completa">⬇ .css</button>
+          <button id="dlHtml" title="Descargar maqueta.html, con el CSS ya incrustado">⬇ .html</button>
+        </div>
+      </div>
     </div>
   </section>
 </main>
@@ -1387,9 +1396,8 @@ function boxDecls(nd, isRoot) {
   return d;
 }
 
-function cssText() {
-  const out = [];
-  out.push(`/* Reglas base: lo que comparten todas las cajas y todos los
+function baseRules() {
+  return `/* Reglas base: lo que comparten todas las cajas y todos los
    contenedores. El padding es lo que les da cuerpo en los dos ejes. */
 * { box-sizing: border-box; }
 
@@ -1397,6 +1405,7 @@ function cssText() {
   flex: ${BOX_DEF.grow} ${BOX_DEF.shrink} ${basisStr(BOX_DEF)};
   padding: ${BOX_DEF.pT}px ${BOX_DEF.pR}px;
   border-radius: ${BOX_DEF.radius}px;
+  background: #cfe0ef;   /* relleno neutro: aquí cada caja lleva su color */
 }
 
 .contenedor {
@@ -1405,8 +1414,16 @@ function cssText() {
   border: 2px dashed #7fb6d8;   /* aquí cada contenedor lleva su propio tono */
   border-radius: ${CONTBOX_DEF.radius}px;
   background: transparent;
-}`);
-  walk(root, (nd, depth) => {
+}`;
+}
+
+// La pestaña muestra sólo lo seleccionado, y un contenedor arrastra consigo
+// a todo su contenido. Las descargas, en cambio, exportan el árbol entero.
+function cssText(scope) {
+  const whole = scope.id === root.id, out = [];
+  if (!whole) out.push(`/* Sólo ${labelOf(scope)}${scope.type === "cont" ? " y su contenido" : ""}.\n   Los botones de descarga exportan la maqueta completa. */`);
+  out.push(baseRules());
+  walk(scope, nd => {
     const isRoot = nd.id === root.id;
     const decls = (nd.type === "cont" ? contDecls(nd) : []).concat(boxDecls(nd, isRoot));
     if (!decls.length) return;
@@ -1484,7 +1501,61 @@ function syncScope() {
 }
 
 function paintCode() {
-  $("#codeOut").textContent = codeView === "css" ? cssText() : htmlText();
+  $("#codeOut").textContent = codeView === "css" ? cssText(selNode()) : htmlText();
+}
+
+/* --- descargas: siempre la maqueta completa --- */
+// El HTML va con su CSS incrustado para que funcione él solo, lo acompañe
+// o no el .css suelto.
+function htmlDoc() {
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maqueta</title>
+<style>
+${cssText(root)}
+</style>
+</head>
+<body>
+${htmlText()}
+</body>
+</html>
+`;
+}
+
+// En una página publicada el navegador no deja descargar por su cuenta:
+// hay que pedírselo al anfitrión. Suelta, el enlace con blob sí funciona.
+let saver = null;
+try {
+  if (window.claude && typeof window.claude.use === "function")
+    window.claude.use("downloads").then(ns => { saver = ns; }).catch(() => {});
+} catch {}
+
+async function download(name, text, mime) {
+  if (saver) {
+    try {
+      await saver.save({ filename: name, data: text });
+      $("#status").textContent = "Descargado " + name + ".";
+    } catch (err) {
+      const code = err && err.code;
+      $("#status").textContent =
+        code === "declined" ? "Descarga cancelada."
+        : code === "rejected_extension" ? "Aquí no se pueden guardar archivos .css: usa Copiar, o descarga el .html, que ya lleva el CSS dentro."
+        : "No se pudo descargar " + name + ".";
+    }
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([text], { type: mime + ";charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#status").textContent = "Descargado " + name + ".";
 }
 
 function render() {
@@ -1649,6 +1720,9 @@ $("#resetAll").addEventListener("click", () => {
   render();
   $("#status").textContent = "Todo reiniciado.";
 });
+
+$("#dlCss").addEventListener("click", () => download("maqueta.css", cssText(root), "text/css"));
+$("#dlHtml").addEventListener("click", () => download("maqueta.html", htmlDoc(), "text/html"));
 
 $("#copy").addEventListener("click", async () => {
   try {
