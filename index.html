@@ -13,6 +13,10 @@
    Temas: aero (por defecto) · min · dark · code
    =========================================================== */
 *{box-sizing:border-box}
+/* Las reglas de abajo fijan display en casi todo, así que el atributo
+   hidden necesita ganar explícitamente. */
+[hidden]{display:none!important}
+.sub{display:grid;gap:14px}
 
 :root{
   color-scheme:light;
@@ -765,36 +769,112 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
       <p class="scope" id="scopeC"></p>
 
       <details open>
-        <summary>Ejes y reparto</summary>
+        <summary>Disposición</summary>
         <div class="group">
           <div class="control">
             <label for="display">display</label>
             <select id="display" data-c="display">
               <option value="flex">flex</option>
               <option value="inline-flex">inline-flex</option>
-              <option value="block">block (sin flexbox)</option>
+              <option value="grid">grid</option>
+              <option value="inline-grid">inline-grid</option>
+              <option value="block">block (ni flex ni grid)</option>
             </select>
-            <p class="hint">Con <b>block</b> los hijos vuelven al flujo normal: útil para ver qué aporta flexbox.</p>
+            <p class="hint">Flexbox coloca en <b>una</b> dirección; grid, en <b>dos</b> a la vez. Con <b>block</b> los hijos vuelven al flujo normal.</p>
           </div>
-          <div class="control">
-            <label for="flexDirection">flex-direction</label>
-            <select id="flexDirection" data-c="flexDirection">
-              <option>row</option><option>row-reverse</option><option>column</option><option>column-reverse</option>
-            </select>
+
+          <!-- sólo flexbox -->
+          <div class="sub" data-only="flex">
+            <div class="control">
+              <label for="flexDirection">flex-direction</label>
+              <select id="flexDirection" data-c="flexDirection">
+                <option>row</option><option>row-reverse</option><option>column</option><option>column-reverse</option>
+              </select>
+              <p class="hint">Define el eje principal.</p>
+            </div>
+            <div class="control">
+              <label for="flexWrap">flex-wrap</label>
+              <select id="flexWrap" data-c="flexWrap">
+                <option>nowrap</option><option>wrap</option><option>wrap-reverse</option>
+              </select>
+            </div>
           </div>
-          <div class="control">
-            <label for="flexWrap">flex-wrap</label>
-            <select id="flexWrap" data-c="flexWrap">
-              <option>nowrap</option><option>wrap</option><option>wrap-reverse</option>
-            </select>
+
+          <!-- sólo grid -->
+          <div class="sub" data-only="grid">
+            <div class="control">
+              <label for="colsMode">grid-template-columns</label>
+              <select id="colsMode" data-c="colsMode">
+                <option value="none">none (columnas implícitas)</option>
+                <option value="repeat">repeat(n, 1fr)</option>
+                <option value="repeatAuto">repeat(n, auto)</option>
+                <option value="autofit">repeat(auto-fit, minmax(px, 1fr))</option>
+                <option value="autofill">repeat(auto-fill, minmax(px, 1fr))</option>
+                <option value="custom">personalizado</option>
+              </select>
+              <div class="control" data-when="colsMode:repeat|repeatAuto">
+                <div class="label-row"><label for="colsN">número de columnas</label><output data-out="c:colsN"></output></div>
+                <input type="range" id="colsN" data-c="colsN" data-num min="1" max="8" step="1">
+              </div>
+              <div class="control" data-when="colsMode:autofit|autofill">
+                <div class="label-row"><label for="colsMin">ancho mínimo</label><output data-out="c:colsMin" data-suffix=" px"></output></div>
+                <input type="range" id="colsMin" data-c="colsMin" data-num min="60" max="320" step="10">
+              </div>
+              <input type="text" data-c="colsText" data-when="colsMode:custom" aria-label="grid-template-columns personalizado" placeholder="1fr 2fr 1fr">
+              <p class="hint"><b>auto-fit</b> reparte el sobrante entre las columnas que quepan: es la rejilla responsiva sin media queries.</p>
+            </div>
+
+            <div class="control">
+              <label for="rowsMode">grid-template-rows</label>
+              <select id="rowsMode" data-c="rowsMode">
+                <option value="none">none (filas implícitas)</option>
+                <option value="repeat">repeat(n, 1fr)</option>
+                <option value="repeatAuto">repeat(n, auto)</option>
+                <option value="custom">personalizado</option>
+              </select>
+              <div class="control" data-when="rowsMode:repeat|repeatAuto">
+                <div class="label-row"><label for="rowsN">número de filas</label><output data-out="c:rowsN"></output></div>
+                <input type="range" id="rowsN" data-c="rowsN" data-num min="1" max="8" step="1">
+              </div>
+              <input type="text" data-c="rowsText" data-when="rowsMode:custom" aria-label="grid-template-rows personalizado" placeholder="auto 1fr auto">
+            </div>
+
+            <div class="control">
+              <label for="autoFlow">grid-auto-flow</label>
+              <select id="autoFlow" data-c="autoFlow">
+                <option>row</option><option>column</option>
+              </select>
+              <div class="toggle-row"><label for="dense">empaquetado <b>dense</b></label><input type="checkbox" id="dense" data-c="dense"></div>
+              <p class="hint">Dirección en que se colocan las cajas que no tienen sitio asignado. Con <b>dense</b> rellena los huecos que dejan atrás.</p>
+            </div>
+
+            <div class="row2">
+              <div class="control"><label for="autoRows">grid-auto-rows</label><input type="number" id="autoRows" data-c="autoRows" data-num min="0" max="600" step="10" placeholder="auto"></div>
+              <div class="control"><label for="autoCols">grid-auto-columns</label><input type="number" id="autoCols" data-c="autoCols" data-num min="0" max="600" step="10" placeholder="auto"></div>
+            </div>
+            <p class="hint">Tamaño en píxeles de las pistas que la rejilla crea sola. Vacío = auto.</p>
+
+            <div class="control">
+              <label for="justifyItems">justify-items</label>
+              <select id="justifyItems" data-c="justifyItems">
+                <option>stretch</option><option>start</option><option>center</option><option>end</option>
+              </select>
+              <p class="hint">Alinea cada caja dentro de su celda, en horizontal.</p>
+            </div>
           </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Alineación</summary>
+        <div class="group">
           <div class="control">
             <label for="justifyContent">justify-content</label>
             <select id="justifyContent" data-c="justifyContent">
               <option>flex-start</option><option>center</option><option>flex-end</option>
               <option>space-between</option><option>space-around</option><option>space-evenly</option>
             </select>
-            <p class="hint">Reparte sobre el <b>eje principal</b>.</p>
+            <p class="hint"><span data-only="flex">Reparte sobre el <b>eje principal</b>.</span><span data-only="grid">Reparte las columnas dentro del contenedor.</span></p>
           </div>
           <div class="control">
             <label for="alignItems">align-items</label>
@@ -802,7 +882,7 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
               <option>stretch</option><option>flex-start</option><option>center</option>
               <option>flex-end</option><option>baseline</option>
             </select>
-            <p class="hint">Alinea sobre el <b>eje transversal</b>.</p>
+            <p class="hint"><span data-only="flex">Alinea sobre el <b>eje transversal</b>.</span><span data-only="grid">Alinea cada caja dentro de su celda, en vertical.</span></p>
           </div>
           <div class="control">
             <label for="alignContent">align-content</label>
@@ -810,7 +890,7 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
               <option>normal</option><option>flex-start</option><option>center</option><option>flex-end</option>
               <option>space-between</option><option>space-around</option><option>space-evenly</option><option>stretch</option>
             </select>
-            <p class="hint">Sólo hace algo con varias líneas: activa <b>flex-wrap: wrap</b>.</p>
+            <p class="hint"><span data-only="flex">Sólo hace algo con varias líneas: activa <b>flex-wrap: wrap</b>.</span><span data-only="grid">Reparte las filas cuando sobra alto.</span></p>
           </div>
         </div>
       </details>
@@ -852,6 +932,12 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
                 <option value="sidebar">Sidebar + contenido elástico</option>
                 <option value="layers">Capas con position y z-index</option>
               </optgroup>
+              <optgroup label="Rejilla (grid)">
+                <option value="gridBasic">Rejilla de 3 columnas</option>
+                <option value="gridAuto">Galería que se adapta sola (auto-fit)</option>
+                <option value="gridSpan">Tablero con celdas que ocupan varias</option>
+                <option value="gridPage">Página completa en una sola rejilla</option>
+              </optgroup>
               <optgroup label="Contenedores anidados">
                 <option value="axes">Ejes anidados: columna dentro de fila</option>
                 <option value="holy">Holy grail: cabecera, tres columnas y pie</option>
@@ -887,17 +973,60 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
               </select>
             </div>
           </div>
-          <div class="row2">
-            <div class="control"><label for="bGrow">flex-grow</label><input type="number" id="bGrow" data-b="grow" data-num min="0" max="20" step="1"></div>
-            <div class="control"><label for="bShrink">flex-shrink</label><input type="number" id="bShrink" data-b="shrink" data-num min="0" max="20" step="1"></div>
-          </div>
-          <div class="control">
-            <label for="bBasisVal">flex-basis</label>
-            <div class="unit">
-              <input type="number" id="bBasisVal" data-b="basisVal" data-num min="0" max="900" step="2">
-              <select data-b="basisUnit" aria-label="unidad de flex-basis"><option>px</option><option>%</option><option>auto</option><option>content</option></select>
+          <!-- sólo si el padre es flex -->
+          <div class="sub" data-only="pflex">
+            <div class="row2">
+              <div class="control"><label for="bGrow">flex-grow</label><input type="number" id="bGrow" data-b="grow" data-num min="0" max="20" step="1"></div>
+              <div class="control"><label for="bShrink">flex-shrink</label><input type="number" id="bShrink" data-b="shrink" data-num min="0" max="20" step="1"></div>
             </div>
-            <p class="hint">Tamaño de partida en el eje principal <b>del contenedor padre</b>.</p>
+            <div class="control">
+              <label for="bBasisVal">flex-basis</label>
+              <div class="unit">
+                <input type="number" id="bBasisVal" data-b="basisVal" data-num min="0" max="900" step="2">
+                <select data-b="basisUnit" aria-label="unidad de flex-basis"><option>px</option><option>%</option><option>auto</option><option>content</option></select>
+              </div>
+              <p class="hint">Tamaño de partida en el eje principal <b>del contenedor padre</b>.</p>
+            </div>
+          </div>
+
+          <!-- sólo si el padre es una rejilla -->
+          <div class="sub" data-only="pgrid">
+            <div class="control">
+              <label>grid-column</label>
+              <div class="row2">
+                <span class="mini"><span>empieza en</span>
+                  <select data-b="colStart" aria-label="columna de inicio">
+                    <option value="auto">auto</option><option>1</option><option>2</option><option>3</option>
+                    <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+                  </select></span>
+                <span class="mini"><span>ocupa</span>
+                  <select data-b="colSpan" data-num aria-label="columnas que ocupa">
+                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+                  </select></span>
+              </div>
+            </div>
+            <div class="control">
+              <label>grid-row</label>
+              <div class="row2">
+                <span class="mini"><span>empieza en</span>
+                  <select data-b="rowStart" aria-label="fila de inicio">
+                    <option value="auto">auto</option><option>1</option><option>2</option><option>3</option>
+                    <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+                  </select></span>
+                <span class="mini"><span>ocupa</span>
+                  <select data-b="rowSpan" data-num aria-label="filas que ocupa">
+                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+                  </select></span>
+              </div>
+              <p class="hint">Con <b>auto</b> la rejilla coloca la caja sola; fijando el inicio la clavas en una línea concreta.</p>
+            </div>
+            <div class="control">
+              <label for="bJustifySelf">justify-self</label>
+              <select id="bJustifySelf" data-b="justifySelf">
+                <option>auto</option><option>stretch</option><option>start</option><option>center</option><option>end</option>
+              </select>
+              <p class="hint">Como <b>align-self</b>, pero en horizontal dentro de su celda.</p>
+            </div>
           </div>
         </div>
       </details>
@@ -1138,7 +1267,12 @@ const n = (v, d = 0) => (v === "" || v === null || v === undefined || isNaN(pars
 const CONT_DEF = {
   display: "flex", flexDirection: "row", flexWrap: "nowrap",
   justifyContent: "flex-start", alignItems: "center", alignContent: "normal",
-  rowGap: 12, colGap: 12, linkGap: true, overflow: "visible"
+  rowGap: 12, colGap: 12, linkGap: true, overflow: "visible",
+  // rejilla
+  colsMode: "repeat", colsN: 3, colsMin: 140, colsText: "1fr 2fr",
+  rowsMode: "none", rowsN: 2, rowsMin: 100, rowsText: "auto auto",
+  autoFlow: "row", dense: false, autoRows: "", autoCols: "",
+  justifyItems: "stretch"
 };
 const BOX_DEF = {
   order: 0, grow: 0, shrink: 1, basisVal: 84, basisUnit: "px", alignSelf: "auto",
@@ -1147,7 +1281,9 @@ const BOX_DEF = {
   mT: 0, mR: 0, mB: 0, mL: 0, mAuto: "none",
   pT: 16, pR: 20, pB: 16, pL: 20,
   position: "static", top: "", right: "", bottom: "", left: "",
-  zIndex: 0, tx: 0, ty: 0, rot: 0, scale: 1, opacity: 1, radius: 14
+  zIndex: 0, tx: 0, ty: 0, rot: 0, scale: 1, opacity: 1, radius: 14,
+  // sólo cuentan cuando el padre es una rejilla
+  colStart: "auto", colSpan: 1, rowStart: "auto", rowSpan: 1, justifySelf: "auto"
 };
 // Un contenedor se mide por su contenido y deja aire a sus hijas.
 const CONTBOX_DEF = Object.assign({}, BOX_DEF, { basisUnit: "auto", pT: 14, pR: 14, pB: 14, pL: 14, radius: 16 });
@@ -1236,12 +1372,25 @@ function transformStr(b) {
    =========================================================== */
 const stage = $("#stage");
 
-function applyBox(el, b, isRoot) {
+// En rejilla se escribe "auto" o "n / span m"; vacío significa no tocar nada.
+function lineStr(start, span) {
+  const s = (start === "auto" || start === "" || start === undefined) ? "auto" : n(start);
+  const sp = Math.max(1, n(span, 1));
+  if (s === "auto" && sp === 1) return "";
+  return `${s} / span ${sp}`;
+}
+
+function applyBox(el, b, isRoot, inGrid) {
   const st = el.style;
   st.order = n(b.order);
-  st.flexGrow = n(b.grow);
-  st.flexShrink = n(b.shrink, 1);
-  st.flexBasis = basisStr(b);
+  // flex-grow/shrink/basis sólo cuentan si el padre es flex; en rejilla
+  // mandan grid-column y grid-row.
+  st.flexGrow = inGrid ? "" : n(b.grow);
+  st.flexShrink = inGrid ? "" : n(b.shrink, 1);
+  st.flexBasis = inGrid ? "" : basisStr(b);
+  st.gridColumn = inGrid ? lineStr(b.colStart, b.colSpan) : "";
+  st.gridRow = inGrid ? lineStr(b.rowStart, b.rowSpan) : "";
+  st.justifySelf = inGrid ? b.justifySelf : "";
   st.alignSelf = b.alignSelf;
   st.width = lenStr(b.widthVal, b.widthUnit);
   st.height = lenStr(b.heightVal, b.heightUnit);
@@ -1262,11 +1411,37 @@ function applyBox(el, b, isRoot) {
   st.borderRadius = n(b.radius, 14) + "px";
 }
 
+const isFlex = c => c.display === "flex" || c.display === "inline-flex";
+const isGrid = c => c.display === "grid" || c.display === "inline-grid";
+
+// Las pistas de la rejilla se arman desde controles, no escribiendo CSS,
+// salvo el modo "personalizado", que deja el valor tal cual.
+function tracks(mode, count, min, text) {
+  switch (mode) {
+    case "repeat":     return `repeat(${n(count, 1)}, 1fr)`;
+    case "repeatAuto": return `repeat(${n(count, 1)}, auto)`;
+    case "autofit":    return `repeat(auto-fit, minmax(${n(min, 120)}px, 1fr))`;
+    case "autofill":   return `repeat(auto-fill, minmax(${n(min, 120)}px, 1fr))`;
+    case "custom":     return (text || "").trim();
+    default:           return "";
+  }
+}
+const colTracks = c => tracks(c.colsMode, c.colsN, c.colsMin, c.colsText);
+const rowTracks = c => tracks(c.rowsMode, c.rowsN, c.rowsMin, c.rowsText);
+const flowStr = c => c.autoFlow + (c.dense ? " dense" : "");
+
 function applyCont(el, c) {
-  const st = el.style;
+  const st = el.style, grid = isGrid(c), flex = isFlex(c);
   st.display = c.display;
-  st.flexDirection = c.flexDirection;
-  st.flexWrap = c.flexWrap;
+  // Cada familia se limpia cuando no manda, para no dejar estilos fantasma.
+  st.flexDirection = flex ? c.flexDirection : "";
+  st.flexWrap = flex ? c.flexWrap : "";
+  st.gridTemplateColumns = grid ? colTracks(c) : "";
+  st.gridTemplateRows = grid ? rowTracks(c) : "";
+  st.gridAutoFlow = grid ? flowStr(c) : "";
+  st.gridAutoRows = grid && c.autoRows !== "" ? n(c.autoRows) + "px" : "";
+  st.gridAutoColumns = grid && c.autoCols !== "" ? n(c.autoCols) + "px" : "";
+  st.justifyItems = grid ? c.justifyItems : "";
   st.justifyContent = c.justifyContent;
   st.alignItems = c.alignItems;
   st.alignContent = c.alignContent;
@@ -1275,7 +1450,7 @@ function applyCont(el, c) {
   st.overflow = c.overflow;
 }
 
-function buildEl(nd) {
+function buildEl(nd, parent) {
   const el = document.createElement("div");
   el.dataset.id = nd.id;
   el.tabIndex = 0;
@@ -1288,19 +1463,19 @@ function buildEl(nd) {
     el.appendChild(s);
   } else {
     el.className = "contenedor t" + nd.tone;
-    nd.kids.forEach(k => el.appendChild(buildEl(k)));
+    nd.kids.forEach(k => el.appendChild(buildEl(k, nd)));
     applyCont(el, nd.cont);
   }
-  applyBox(el, nd.box, false);
+  applyBox(el, nd.box, false, !!(parent && isGrid(parent.cont)));
   if (nd.id === selId) el.classList.add("sel");
   return el;
 }
 
 function paintStage() {
-  applyBox(stage, root.box, true);
+  applyBox(stage, root.box, true, false);
   applyCont(stage, root.cont);
   stage.classList.toggle("sel", selId === root.id);
-  stage.replaceChildren(...root.kids.map(buildEl));
+  stage.replaceChildren(...root.kids.map(k => buildEl(k, root)));
 }
 
 /* ===========================================================
@@ -1359,22 +1534,41 @@ const CSS_PROP = {
 };
 
 function contDecls(nd) {
-  const c = nd.cont, d = [];
+  const c = nd.cont, d = [], grid = isGrid(c), flex = isFlex(c);
   d.push(`display: ${c.display};`);
-  if (c.display === "block") return d;
-  ["flexDirection", "flexWrap", "justifyContent", "alignItems", "alignContent", "overflow"].forEach(k => {
+  if (flex) ["flexDirection", "flexWrap"].forEach(k => {
     if (c[k] !== CSS_INIT[k]) d.push(`${CSS_PROP[k]}: ${c[k]};`);
   });
-  const rg = n(c.rowGap), cg = n(c.colGap);
-  if (rg || cg) d.push(rg === cg ? `gap: ${rg}px;` : `gap: ${rg}px ${cg}px;`);
+  if (grid) {
+    const cols = colTracks(c), rows = rowTracks(c);
+    if (cols) d.push(`grid-template-columns: ${cols};`);
+    if (rows) d.push(`grid-template-rows: ${rows};`);
+    if (flowStr(c) !== "row") d.push(`grid-auto-flow: ${flowStr(c)};`);
+    if (c.autoRows !== "") d.push(`grid-auto-rows: ${n(c.autoRows)}px;`);
+    if (c.autoCols !== "") d.push(`grid-auto-columns: ${n(c.autoCols)}px;`);
+    if (c.justifyItems !== "stretch") d.push(`justify-items: ${c.justifyItems};`);
+  }
+  if (flex || grid) {
+    ["justifyContent", "alignItems", "alignContent"].forEach(k => {
+      if (c[k] !== CSS_INIT[k]) d.push(`${CSS_PROP[k]}: ${c[k]};`);
+    });
+    const rg = n(c.rowGap), cg = n(c.colGap);
+    if (rg || cg) d.push(rg === cg ? `gap: ${rg}px;` : `gap: ${rg}px ${cg}px;`);
+  }
+  if (c.overflow !== CSS_INIT.overflow) d.push(`overflow: ${c.overflow};`);
   return d;
 }
 
-function boxDecls(nd, isRoot) {
+function boxDecls(nd, isRoot, inGrid) {
   const b = nd.box, D = nd.type === "cont" ? CONTBOX_DEF : BOX_DEF, d = [];
   if (!isRoot) {
-    if (n(b.grow) !== D.grow || n(b.shrink, 1) !== D.shrink || basisStr(b) !== basisStr(D))
+    if (inGrid) {
+      const gc = lineStr(b.colStart, b.colSpan); if (gc) d.push(`grid-column: ${gc};`);
+      const gr = lineStr(b.rowStart, b.rowSpan); if (gr) d.push(`grid-row: ${gr};`);
+      if (b.justifySelf !== "auto") d.push(`justify-self: ${b.justifySelf};`);
+    } else if (n(b.grow) !== D.grow || n(b.shrink, 1) !== D.shrink || basisStr(b) !== basisStr(D)) {
       d.push(`flex: ${n(b.grow)} ${n(b.shrink, 1)} ${basisStr(b)};`);
+    }
     if (b.alignSelf !== D.alignSelf) d.push(`align-self: ${b.alignSelf};`);
     if (n(b.order) !== 0) d.push(`order: ${n(b.order)};`);
   }
@@ -1424,9 +1618,16 @@ function cssText(scope) {
   if (!whole) out.push(`/* Sólo ${labelOf(scope)}${scope.type === "cont" ? " y su contenido" : ""}.\n   Los botones de descarga exportan la maqueta completa. */`);
   out.push(baseRules());
   walk(scope, nd => {
-    const isRoot = nd.id === root.id;
-    const decls = (nd.type === "cont" ? contDecls(nd) : []).concat(boxDecls(nd, isRoot));
-    if (!decls.length) return;
+    const isRoot = nd.id === root.id, p = parentOf(nd.id);
+    const decls = (nd.type === "cont" ? contDecls(nd) : [])
+      .concat(boxDecls(nd, isRoot, !!(p && isGrid(p.cont))));
+    if (!decls.length) {
+      // Lo seleccionado se nombra siempre, aunque no tenga nada propio:
+      // en blanco parecería que falta código.
+      if (nd.id === scope.id)
+        out.push(`.${nameOf(nd)} {\n  /* sin propiedades propias: le bastan las reglas base */\n}`);
+      return;
+    }
     out.push(`.${nameOf(nd)} {${isRoot ? "   /* raíz */" : ""}\n` + decls.map(x => "  " + x).join("\n") + "\n}");
   });
   return out.join("\n\n");
@@ -1481,13 +1682,40 @@ function syncScope() {
     : `${labelOf(s)}, dentro de ${labelOf(parentOf(s.id))}.`;
 
   // La raíz no es hija de nadie: esos grupos no le aplican.
-  ["g-flex", "g-margin", "g-pos", "g-trans"].forEach(id => { $("#" + id).hidden = isRoot; });
+  ["g-margin", "g-pos", "g-trans"].forEach(id => { $("#" + id).hidden = isRoot; });
 
-  const d = ac.cont.flexDirection, flex = ac.cont.display !== "block";
-  const main = { row: "→", "row-reverse": "←", column: "↓", "column-reverse": "↑" }[d];
-  const cross = { row: "↓", "row-reverse": "↓", column: "→", "column-reverse": "→" }[d];
-  $("#axisMain").textContent = flex ? `Eje principal ${main} · Contenedor ${ac.n}` : `Contenedor ${ac.n}: sin flexbox`;
-  $("#axisCross").textContent = flex ? "Eje transversal " + cross : "display: block";
+  // Qué controles tienen sentido: los del contenedor dependen de SU display;
+  // los de la caja, del display de su PADRE, que es quien la coloca.
+  const c = ac.cont, pc = isRoot ? null : parentOf(s.id).cont;
+  const flags = {
+    flex: isFlex(c), grid: isGrid(c),
+    pflex: !!pc && isFlex(pc), pgrid: !!pc && isGrid(pc)
+  };
+  $$("[data-only]").forEach(el => { el.hidden = !flags[el.dataset.only]; });
+  $$("[data-when]").forEach(el => {
+    const [key, list] = el.dataset.when.split(":");
+    el.hidden = !list.split("|").includes(String(c[key]));
+  });
+  $("#g-flex").hidden = isRoot || !(flags.pflex || flags.pgrid);
+
+  const el = ac.id === root.id ? stage : stage.querySelector(`[data-id="${ac.id}"]`);
+  if (flags.grid) {
+    // Las pistas reales las resuelve el navegador: se las preguntamos.
+    const count = v => v.split(/\s+/).filter(x => x && x !== "none").length;
+    const cs = el ? getComputedStyle(el) : null;
+    const nc = cs ? count(cs.gridTemplateColumns) : 0, nr = cs ? count(cs.gridTemplateRows) : 0;
+    $("#axisMain").textContent = `Rejilla ${nc || "–"}×${nr || "–"} · Contenedor ${ac.n}`;
+    $("#axisCross").textContent = "grid-auto-flow: " + flowStr(c);
+  } else if (flags.flex) {
+    const d = c.flexDirection;
+    const main = { row: "→", "row-reverse": "←", column: "↓", "column-reverse": "↑" }[d];
+    const cross = { row: "↓", "row-reverse": "↓", column: "→", "column-reverse": "→" }[d];
+    $("#axisMain").textContent = `Eje principal ${main} · Contenedor ${ac.n}`;
+    $("#axisCross").textContent = "Eje transversal " + cross;
+  } else {
+    $("#axisMain").textContent = `Contenedor ${ac.n}: sin flex ni grid`;
+    $("#axisCross").textContent = "display: " + c.display;
+  }
 
   $("#del").disabled = isRoot;
   const sibs = isRoot ? [] : parentOf(s.id).kids;
@@ -1811,6 +2039,43 @@ const PRESETS = {
 
     body.kids.push(side, main);
     root.kids.push(head, body);
+  },
+  gridBasic() {
+    reset(0);
+    Object.assign(root.cont, { display: "grid", colsMode: "repeat", colsN: 3, rowsMode: "none",
+      alignItems: "stretch", justifyItems: "stretch", rowGap: 14, colGap: 14 });
+    Object.assign(root.box, { heightVal: 360 });
+    boxes(root, 6, { minH: 70 });
+  },
+  gridAuto() {
+    reset(0);
+    // auto-fit + minmax: tantas columnas como quepan, sin media queries.
+    Object.assign(root.cont, { display: "grid", colsMode: "autofit", colsMin: 150,
+      alignItems: "stretch", rowGap: 14, colGap: 14 });
+    Object.assign(root.box, { heightVal: 420 });
+    boxes(root, 8, { minH: 84 });
+  },
+  gridSpan() {
+    reset(0);
+    Object.assign(root.cont, { display: "grid", colsMode: "repeat", colsN: 4,
+      rowsMode: "repeat", rowsN: 3, alignItems: "stretch", rowGap: 12, colGap: 12, dense: true });
+    Object.assign(root.box, { heightVal: 420 });
+    boxes(root, 7, {});
+    // 2×2 + 2 + 2 + cuatro sueltas = las doce celdas justas.
+    Object.assign(root.kids[0].box, { colSpan: 2, rowSpan: 2 });
+    Object.assign(root.kids[3].box, { colSpan: 2 });
+    Object.assign(root.kids[6].box, { colSpan: 2 });
+  },
+  gridPage() {
+    reset(0);
+    Object.assign(root.cont, { display: "grid", colsMode: "custom", colsText: "200px 1fr 160px",
+      rowsMode: "custom", rowsText: "auto 1fr auto", alignItems: "stretch", rowGap: 12, colGap: 12 });
+    Object.assign(root.box, { heightVal: 400 });
+    root.kids.push(
+      B({ colStart: 1, colSpan: 3, minH: 54 }),   // cabecera, de lado a lado
+      B({}), B({}), B({}),                        // barra, contenido, columna
+      B({ colStart: 1, colSpan: 3, minH: 54 })    // pie, de lado a lado
+    );
   },
   axes() {
     reset(0);
