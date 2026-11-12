@@ -644,6 +644,16 @@ button.green{color:var(--btn-green-color);background:var(--btn-green-bg)}
 .contenedor.t3{--tone:var(--t3)} .contenedor.t4{--tone:var(--t4)} .contenedor.t5{--tone:var(--t5)}
 .contenedor:empty{min-width:54px;min-height:40px}
 
+/* Capa de líneas de rejilla: absoluta sobre el escenario, sin eventos,
+   para no entrar en el flujo ni robar clics. */
+.gridlayer{position:absolute;inset:0;pointer-events:none;z-index:50}
+.gridbox{position:absolute}
+.gridbox i{position:absolute;opacity:.9}
+.gridbox i.v{top:0;bottom:0;border-left:1px dashed currentColor}
+.gridbox i.h{left:0;right:0;border-top:1px dashed currentColor}
+.gridtoggle{display:flex;align-items:center;gap:7px;font-size:.75rem;font-weight:800;color:var(--ink)}
+.gridtoggle input[type=checkbox]{width:18px;height:18px}
+
 .sel{box-shadow:var(--sel-ring)!important}
 .hl{box-shadow:var(--hl-ring)!important}
 
@@ -1192,6 +1202,7 @@ footer{margin-top:22px;text-align:center;color:var(--footer);font-size:.8rem}
           <span class="pill" id="axisMain">Eje principal →</span>
           <span class="pill" id="axisCross">Eje transversal ↓</span>
           <span class="pill" id="selPill">Contenedor 1</span>
+          <label class="gridtoggle" id="gridToggle" hidden><input type="checkbox" id="showGrid" checked> líneas de rejilla</label>
         </div>
       </div>
       <div class="stage-wrap"><div class="stage" id="stage"></div></div>
@@ -1476,6 +1487,74 @@ function paintStage() {
   applyCont(stage, root.cont);
   stage.classList.toggle("sel", selId === root.id);
   stage.replaceChildren(...root.kids.map(k => buildEl(k, root)));
+}
+
+/* ===========================================================
+   LÍNEAS DE REJILLA
+   Como en el inspector del navegador: no se adivinan a partir de
+   los valores escritos, se leen las pistas ya resueltas y se dibujan
+   en una capa aparte, que no participa en la maquetación.
+   =========================================================== */
+let gridLines = true;
+
+// Bordes de cada pista: su principio y su final. Con gap los dos quedan
+// separados y se ve el canal, como en el inspector.
+function edges(sizes, gap) {
+  const out = [];
+  let p = 0;
+  sizes.forEach(s => { out.push(p); p += s; out.push(p); p += gap; });
+  return [...new Set(out.map(v => Math.round(v * 2) / 2))];
+}
+
+function paintGridLines() {
+  let layer = stage.querySelector(".gridlayer");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.className = "gridlayer";
+    stage.appendChild(layer);
+  }
+  layer.replaceChildren();
+
+  const grids = [];
+  if (isGrid(root.cont)) grids.push(stage);
+  stage.querySelectorAll(".contenedor").forEach(el => {
+    if (getComputedStyle(el).display.indexOf("grid") >= 0) grids.push(el);
+  });
+  $("#gridToggle").hidden = !grids.length;
+  if (!gridLines || !grids.length) return;
+
+  // Origen: la caja de relleno del escenario, en coordenadas ya desplazadas
+  // por su scroll, que es donde vive una capa absoluta dentro de él.
+  const sr = stage.getBoundingClientRect(), scs = getComputedStyle(stage);
+  const ox = sr.left + parseFloat(scs.borderLeftWidth) - stage.scrollLeft;
+  const oy = sr.top + parseFloat(scs.borderTopWidth) - stage.scrollTop;
+  const num = v => v.split(" ").map(parseFloat).filter(v2 => !isNaN(v2));
+
+  grids.forEach(el => {
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    const cols = num(cs.gridTemplateColumns), rows = num(cs.gridTemplateRows);
+    if (!cols.length && !rows.length) return;
+    const cgap = parseFloat(cs.columnGap) || 0, rgap = parseFloat(cs.rowGap) || 0;
+    const sum = (a, b) => a + b;
+    const w = cols.length ? cols.reduce(sum, 0) + cgap * (cols.length - 1) : r.width;
+    const h = rows.length ? rows.reduce(sum, 0) + rgap * (rows.length - 1) : r.height;
+    const box = document.createElement("div");
+    box.className = "gridbox";
+    box.style.left = (r.left - ox + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft)) + "px";
+    box.style.top = (r.top - oy + parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop)) + "px";
+    box.style.width = w + "px";
+    box.style.height = h + "px";
+    box.style.color = cs.borderTopColor;   // cada rejilla, con su propio tono
+    edges(cols, cgap).forEach(x => {
+      const i = document.createElement("i");
+      i.className = "v"; i.style.left = x + "px"; box.appendChild(i);
+    });
+    edges(rows, rgap).forEach(y => {
+      const i = document.createElement("i");
+      i.className = "h"; i.style.top = y + "px"; box.appendChild(i);
+    });
+    layer.appendChild(box);
+  });
 }
 
 /* ===========================================================
@@ -1791,6 +1870,7 @@ function render() {
   paintStage();
   paintTree();
   syncScope();
+  paintGridLines();
   paintCode();
   $$("[data-out]").forEach(el => {
     const [scope, key] = el.dataset.out.split(":");
@@ -1948,6 +2028,14 @@ $("#resetAll").addEventListener("click", () => {
   render();
   $("#status").textContent = "Todo reiniciado.";
 });
+
+$("#showGrid").addEventListener("change", e => {
+  gridLines = e.target.checked;
+  paintGridLines();
+  $("#status").textContent = "Líneas de rejilla: " + (gridLines ? "visibles" : "ocultas") + ".";
+});
+// El escenario mide en %, así que al cambiar el ancho hay que recalcular.
+window.addEventListener("resize", paintGridLines);
 
 $("#dlCss").addEventListener("click", () => download("maqueta.css", cssText(root), "text/css"));
 $("#dlHtml").addEventListener("click", () => download("maqueta.html", htmlDoc(), "text/html"));
